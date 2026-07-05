@@ -15,6 +15,13 @@ const (
 	HiveStatusMaintenance  HiveStatus = "MAINTENANCE"
 )
 
+type InterceptorType string
+
+const (
+	TypeKinetic   InterceptorType = "KINETIC"
+	TypeExplosive InterceptorType = "EXPLOSIVE"
+)
+
 type ConnectivitySource string
 
 const (
@@ -24,7 +31,7 @@ const (
 )
 
 type HiveEnvironment struct {
-	Type          string  `json:"type"` // ARCTIC, DESERT, AMPHIBIOUS, STANDARD
+	Type          string  `json:"type"`
 	Temperature   float64 `json:"temperature"`
 	Pressure      float64 `json:"pressure"`
 	SealIntegrity float64 `json:"seal_integrity"`
@@ -42,8 +49,8 @@ type Hive struct {
 	IsPluggedIn        bool               `json:"is_plugged_in"`
 	Connectivity       map[ConnectivitySource]float64 `json:"connectivity"`
 	Environment        HiveEnvironment    `json:"environment"`
-	InterceptorsCount  int                `json:"interceptors_count"`
-	StorageCount       int                `json:"storage_count"`
+	InterceptorsCount  int                `json:"interceptors_count"` // Total
+	StorageCount       map[InterceptorType]int `json:"storage_count"`
 	Interceptors       []Interceptor      `json:"interceptors"`
 	Magazines          []Magazine         `json:"magazines"`
 	Breaches           []string           `json:"breaches"`
@@ -53,8 +60,9 @@ type Hive struct {
 }
 
 type Magazine struct {
-	ID                string `json:"id"`
-	InterceptorsCount int    `json:"interceptors_count"`
+	ID                string          `json:"id"`
+	Type              InterceptorType `json:"type"`
+	InterceptorsCount int             `json:"interceptors_count"`
 }
 
 type InterceptorStatus string
@@ -72,6 +80,7 @@ const (
 type Interceptor struct {
 	ID           string            `json:"id"`
 	HiveID       string            `json:"hive_id"`
+	Type         InterceptorType   `json:"type"`
 	Status       InterceptorStatus `json:"status"`
 	BatteryLevel float64           `json:"battery_level"`
 	Health       float64           `json:"health"`
@@ -105,6 +114,7 @@ type Threat struct {
 	LastUpdated       time.Time  `json:"last_updated"`
 	DetectedBy        string     `json:"detected_by"`
 	TransponderCode   string     `json:"transponder_code,omitempty"`
+	PayloadDetected   bool       `json:"payload_detected"` // High-res sensor verification
 }
 
 type UserRole string
@@ -131,14 +141,15 @@ const (
 )
 
 type Mission struct {
-	ID                string        `json:"id"`
-	ThreatID          string        `json:"threat_id"`
-	InterceptorIDs    []string      `json:"interceptor_ids"`
-	HiveIDs           []string      `json:"hive_ids"`
-	Status            MissionStatus `json:"status"`
-	StartTime         time.Time     `json:"start_time"`
-	InterceptionPt    Coordinate    `json:"interception_point"`
-	ProjectedTargetPt Coordinate    `json:"projected_target_point"`
-	HiveSafeCrashSite Coordinate    `json:"hive_safe_crash_site"`
-	AuthorizedBy      string        `json:"authorized_by"`
+	ID                string          `json:"id"`
+	ThreatID          string          `json:"threat_id"`
+	InterceptorType   InterceptorType `json:"interceptor_type"`
+	InterceptorIDs    []string        `json:"interceptor_ids"`
+	HiveIDs           []string        `json:"hive_ids"`
+	Status            MissionStatus   `json:"status"`
+	StartTime         time.Time       `json:"start_time"`
+	InterceptionPt    Coordinate      `json:"interception_point"`
+	ProjectedTargetPt Coordinate      `json:"projected_target_point"`
+	HiveSafeCrashSite Coordinate      `json:"hive_safe_crash_site"`
+	AuthorizedBy      string          `json:"authorized_by"`
 }

@@ -24,15 +24,15 @@ func (e *Engine) PlanEngagement(threat models.Threat) (*models.Mission, error) {
 
 	weather := geo.GetCurrentWeather(threat.CurrentLocation)
 
-	// Hard Thresholds for Safety
-	if weather.WindSpeed > 100 {
-		return nil, fmt.Errorf("ENVIRONMENTAL BLOCK: Hurricane force winds make interception impossible")
-	}
-	if weather.Temperature > 60 || weather.Temperature < -40 {
-		return nil, fmt.Errorf("ENVIRONMENTAL BLOCK: Extreme temperature outside hardware operating range (%.1f C)", weather.Temperature)
-	}
-	if weather.Visibility < 10 && weather.Type == geo.WeatherSandstorm {
-		return nil, fmt.Errorf("ENVIRONMENTAL BLOCK: Zero visibility in severe sandstorm")
+	// 1. COLLATERAL ASSESSMENT: Decide Interceptor Type
+	interceptionPt := geo.CalculateInterceptionPoint(models.Coordinate{}, threat, 200.0) // Mock base
+	debris := geo.PredictDebrisFall(interceptionPt, models.Coordinate{Lat: 1, Lon: 0}) // Assume wind
+
+	requiredType := models.TypeKinetic
+	// If debris falls in high density area and threat is explosive-laden, use EXPLOSIVE interceptor for mid-air disposal
+	if threat.PayloadDetected && !debris.IsSafe(0.8) {
+		fmt.Println("ENGAGEMENT: High collateral risk detected. Escalating to EXPLOSIVE interceptor for mid-air disposal.")
+		requiredType = models.TypeExplosive
 	}
 
 	var scores []HiveScore
@@ -41,38 +41,30 @@ func (e *Engine) PlanEngagement(threat models.Threat) (*models.Mission, error) {
 			continue
 		}
 
-		effectiveCount := h.InterceptorsCount
-		if h.InterceptorsCount <= 0 {
+		// Check if Hive has the required type loaded
+		hasType := false
+		for _, m := range h.Magazines {
+			if m.Type == requiredType && m.InterceptorsCount > 0 {
+				hasType = true
+				break
+			}
+		}
+		if !hasType {
 			continue
 		}
 
 		dist := geo.Distance(h.Location, threat.CurrentLocation)
 		score := (1.0 / (dist + 1)) * 1000
-		score += float64(effectiveCount) * 0.5
+		score += float64(h.InterceptorsCount) * 0.5
 
-		// Environmental Penalties
-		switch weather.Type {
-		case geo.WeatherFog, geo.WeatherSandstorm:
-			score *= 0.6 // Visual sensors degraded
-		case geo.WeatherSnow:
-			score *= 0.5 // Battery and aerodynamics degraded
-		}
-
-		if weather.Temperature > 45 {
-			score *= 0.8 // Thermal throttling on electronics
-		} else if weather.Temperature < -10 {
-			score *= 0.7 // Battery chemistry efficiency drop
-		}
-
-		if weather.IsJamming {
-			score *= 0.2
-		}
+		if weather.WindSpeed > 20 { score *= 0.5 }
+		if weather.IsJamming { score *= 0.2 }
 
 		scores = append(scores, HiveScore{Hive: h, Score: score})
 	}
 
 	if len(scores) == 0 {
-		return nil, fmt.Errorf("no suitable hives found for engagement under current environmental conditions")
+		return nil, fmt.Errorf("no suitable hives found with %s payload for this mission", requiredType)
 	}
 
 	sort.Slice(scores, func(i, j int) bool {
@@ -80,11 +72,10 @@ func (e *Engine) PlanEngagement(threat models.Threat) (*models.Mission, error) {
 	})
 
 	bestHive := scores[0].Hive
-	interceptionPt := geo.CalculateInterceptionPoint(bestHive.Location, threat, 200.0)
-
 	mission := &models.Mission{
 		ID:                fmt.Sprintf("MISS-%s-%s", bestHive.ID, threat.ID),
 		ThreatID:          threat.ID,
+		InterceptorType:   requiredType,
 		HiveIDs:           []string{bestHive.ID},
 		Status:            models.MissionPlanned,
 		StartTime:         time.Now(),

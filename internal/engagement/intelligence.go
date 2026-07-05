@@ -5,7 +5,6 @@ import (
 	"ghost-hive/internal/models"
 )
 
-// WaveAnalysis identifies swarm intent (e.g., distraction vs. main strike)
 func AnalyzeWave(swarm []models.Threat) string {
 	if len(swarm) > 100 && swarm[0].Speed < 40 {
 		return "PROBABLE DISTRACTION WAVE - Conserve high-performance interceptors."
@@ -18,7 +17,12 @@ type SupplyChainManager struct {
 }
 
 func (s *SupplyChainManager) CheckStockpile(hive models.Hive) {
-	total := hive.InterceptorsCount + hive.StorageCount
+	loaded := hive.InterceptorsCount
+	storage := 0
+	for _, count := range hive.StorageCount {
+		storage += count
+	}
+	total := loaded + storage
 	if total < s.StockpileThreshold {
 		fmt.Printf("SUPPLY CHAIN: Hive %s low on stock (%d). Automated transport mission scheduled.\n", hive.ID, total)
 	}

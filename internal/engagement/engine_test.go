@@ -12,7 +12,9 @@ func TestPlanEngagement(t *testing.T) {
 			Location:          models.Coordinate{Lat: 10, Lon: 10},
 			Status:            models.HiveStatusActive,
 			InterceptorsCount: 10,
-			Interceptors:      []models.Interceptor{{ID: "I1"}},
+			Magazines: []models.Magazine{
+				{ID: "M1", Type: models.TypeKinetic, InterceptorsCount: 10},
+			},
 		},
 	}
 	engine := &Engine{Hives: hives}
