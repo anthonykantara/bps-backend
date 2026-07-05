@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package api;
+
+option go_package = "ghost-hive/api";
+
+import "google/protobuf/timestamp.proto";
+
+service C2Service {
+  rpc GetHives(GetHivesRequest) returns (GetHivesResponse);
+  rpc GetThreats(GetThreatsRequest) returns (GetThreatsResponse);
+  rpc EngageThreat(EngageThreatRequest) returns (EngageThreatResponse);
+  rpc GetMissionStream(GetMissionStreamRequest) returns (stream MissionUpdate);
+}
+
+message Coordinate {
+  double lat = 1;
+  double lon = 2;
+  double alt = 3;
+}
+
+message Hive {
+  string id = 1;
+  Coordinate location = 2;
+  string status = 3;
+  double energy_level = 4;
+  map<string, double> connectivity = 5;
+  int32 interceptors_count = 6;
+}
+
+message Threat {
+  string id = 1;
+  string drone_type = 2;
+  Coordinate location = 3;
+  double speed = 4;
+  double altitude = 5;
+}
+
+message GetHivesRequest {}
+message GetHivesResponse {
+  repeated Hive hives = 1;
+}
+
+message GetThreatsRequest {}
+message GetThreatsResponse {
+  repeated Threat threats = 1;
+}
+
+message EngageThreatRequest {
+  string threat_id = 1;
+  bool engage_all = 2;
+}
+
+message EngageThreatResponse {
+  string mission_id = 1;
+  bool success = 2;
+}
+
+message MissionUpdate {
+  string mission_id = 1;
+  string status = 2;
+  Coordinate interceptor_location = 3;
+  Coordinate threat_location = 4;
+}
