@@ -24,9 +24,15 @@ func (e *Engine) PlanEngagement(threat models.Threat) (*models.Mission, error) {
 
 	weather := geo.GetCurrentWeather(threat.CurrentLocation)
 
-	// Hard Threshold: If wind is > 100m/s (Hurricane Force), flight is impossible.
+	// Hard Thresholds for Safety
 	if weather.WindSpeed > 100 {
-		return nil, fmt.Errorf("ENVIRONMENTAL BLOCK: Hurricane force winds (%.2f m/s) make interception impossible", weather.WindSpeed)
+		return nil, fmt.Errorf("ENVIRONMENTAL BLOCK: Hurricane force winds make interception impossible")
+	}
+	if weather.Temperature > 60 || weather.Temperature < -40 {
+		return nil, fmt.Errorf("ENVIRONMENTAL BLOCK: Extreme temperature outside hardware operating range (%.1f C)", weather.Temperature)
+	}
+	if weather.Visibility < 10 && weather.Type == geo.WeatherSandstorm {
+		return nil, fmt.Errorf("ENVIRONMENTAL BLOCK: Zero visibility in severe sandstorm")
 	}
 
 	var scores []HiveScore
@@ -36,10 +42,6 @@ func (e *Engine) PlanEngagement(threat models.Threat) (*models.Mission, error) {
 		}
 
 		effectiveCount := h.InterceptorsCount
-		if effectiveCount < 32 {
-			effectiveCount /= 2
-		}
-
 		if h.InterceptorsCount <= 0 {
 			continue
 		}
@@ -48,22 +50,29 @@ func (e *Engine) PlanEngagement(threat models.Threat) (*models.Mission, error) {
 		score := (1.0 / (dist + 1)) * 1000
 		score += float64(effectiveCount) * 0.5
 
-		// Penalize scoring based on weather
-		if weather.WindSpeed > 20 {
-			score *= 0.5
+		// Environmental Penalties
+		switch weather.Type {
+		case geo.WeatherFog, geo.WeatherSandstorm:
+			score *= 0.6 // Visual sensors degraded
+		case geo.WeatherSnow:
+			score *= 0.5 // Battery and aerodynamics degraded
 		}
-		if weather.Visibility < 500 {
-			score *= 0.7 // Visual guidance degraded
+
+		if weather.Temperature > 45 {
+			score *= 0.8 // Thermal throttling on electronics
+		} else if weather.Temperature < -10 {
+			score *= 0.7 // Battery chemistry efficiency drop
 		}
+
 		if weather.IsJamming {
-			score *= 0.2 // Data link unreliable
+			score *= 0.2
 		}
 
 		scores = append(scores, HiveScore{Hive: h, Score: score})
 	}
 
 	if len(scores) == 0 {
-		return nil, fmt.Errorf("no suitable hives found for engagement under current conditions")
+		return nil, fmt.Errorf("no suitable hives found for engagement under current environmental conditions")
 	}
 
 	sort.Slice(scores, func(i, j int) bool {

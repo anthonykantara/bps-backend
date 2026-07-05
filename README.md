@@ -1,19 +1,19 @@
-# Ghost Hive Backend - Weather-Resilient Sovereign Edition
+# Ghost Hive Backend - All-Weather Sovereign Edition
 
-The world's most comprehensive autonomous defense network, now featuring dynamic environmental adaptation.
+The world's most comprehensive autonomous defense network, engineered for survival in every climate on Earth.
 
-## Advanced Environmental Resilience
-- **Dynamic Weather Adaptation**: Real-time scoring adjustment for wind, visibility, and electronic jamming.
-- **Environmental Safety Blocks**: Automated mission blocking for extreme conditions (e.g., Hurricane winds > 100m/s).
-- **Automated Resilience**: Real-time monitoring for interceptor failure/crashes with instantaneous automated re-deployment.
-- **Sovereign Controls**: IFF (Identification Friend-or-Foe) and hierarchical RBAC.
-- **High-Scale Performance**: Verified 1,000,000+ threat scalability and 14,500+ interceptions/sec.
+## All-Weather Resilience
+- **Multi-Climate Adaptation**: Advanced logic for Fog, Sandstorms, Blizzards, and Extreme Temperatures (-40°C to +60°C).
+- **Environmental Safety Blocks**: Automated mission prevention for zero-visibility sandstorms and hurricane winds.
+- **Active Thermal Management**: Dynamic liquid cooling for Desert operations and high-load heating for Arctic deployments.
+- **Automated Resilience**: Real-time interceptor failure re-deployment and magazine-based reloads.
 
-## Core Feature Set
-- **961 Mesh Coordination**: Distributed target deconfliction and BDA.
-- **Hardware Abstraction Layer (HAL)**: Pluggable military-grade hardware interfaces.
-- **Post-Quantum Security**: Future-proofed PQC handshake and signatures.
-- **Logistics Pipeline**: Manufacturer-to-deployment tracking and magazine-based reloading.
+## Sovereign Feature Set
+- **IFF (Identification Friend-or-Foe)**: Advanced transponder filtering.
+- **Hierarchical RBAC**: Commander/Operator authorization layers.
+- **Sensor Fusion (Kalman Filtering)**: Precision tracking in noisy environments.
+- **Rules of Engagement (RoE)**: Cryptographically signed legal validation.
+- **Post-Quantum Security**: Future-proofed PQC handshake (Kyber).
 
 ## Execution
 ```bash

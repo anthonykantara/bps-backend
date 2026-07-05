@@ -6,66 +6,47 @@ import (
 	"ghost-hive/internal/c2"
 	"ghost-hive/internal/models"
 	"ghost-hive/internal/geo"
-	"time"
+	"ghost-hive/internal/hive"
 )
 
 func main() {
-	fmt.Println("--- GHOST HIVE MULTI-VARIABLE SIMULATION SUITE ---")
+	fmt.Println("--- GHOST HIVE EXTREME ENVIRONMENT SIMULATION ---")
 
 	server := c2.NewC2Server()
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Start the auto-redeployment worker
-	server.StartAutoRedeploymentWorker(ctx)
+	ctx := context.Background()
 
 	// Setup baseline hives
-	for i := 0; i < 5; i++ {
-		server.Hives[fmt.Sprintf("H-%d", i)] = models.Hive{
-			ID: fmt.Sprintf("H-%d", i),
-			Status: models.HiveStatusActive,
-			InterceptorsCount: 160,
-			Location: models.Coordinate{Lat: 48, Lon: 2},
-		}
+	server.Hives["H-DESERT"] = models.Hive{ID: "H-DESERT", Status: models.HiveStatusActive, InterceptorsCount: 160, Location: models.Coordinate{Lat: 48, Lon: 2}, Environment: models.HiveEnvironment{Type: "DESERT", Temperature: 52}}
+	server.Hives["H-ARCTIC"] = models.Hive{ID: "H-ARCTIC", Status: models.HiveStatusActive, InterceptorsCount: 160, Location: models.Coordinate{Lat: 48, Lon: 2}, Environment: models.HiveEnvironment{Type: "ARCTIC", Temperature: -35}}
+
+	scenarios := []geo.WeatherCondition{
+		{Type: geo.WeatherFog, Name: "HEAVY FOG", Visibility: 50, Temperature: 10, WindSpeed: 2},
+		{Type: geo.WeatherSandstorm, Name: "SEVERE SANDSTORM", Visibility: 5, Temperature: 48, WindSpeed: 25},
+		{Type: geo.WeatherSnow, Name: "BLIZZARD", Visibility: 200, Temperature: -15, WindSpeed: 30},
+		{Type: geo.WeatherClear, Name: "EXTREME HEAT", Visibility: 10000, Temperature: 58, WindSpeed: 5},
 	}
 
-	// 1. Weather Scenarios
-	weatherScenarios := []geo.WeatherCondition{
-		{Name: "CLEAR SKIES", WindSpeed: 5, Visibility: 10000, IsJamming: false},
-		{Name: "HIGH WIND (GALE)", WindSpeed: 45, Visibility: 5000, IsJamming: false},
-		{Name: "HURRICANE", WindSpeed: 120, Visibility: 50, IsJamming: false},
-	}
-
-	for _, s := range weatherScenarios {
-		fmt.Printf("\n>>> WEATHER TEST: %s\n", s.Name)
+	for _, s := range scenarios {
+		fmt.Printf("\n>>> SCENARIO: %s (Temp: %.1f C, Vis: %.1f m)\n", s.Name, s.Temperature, s.Visibility)
 		geo.SetWeather(s)
 
-		threat := models.Threat{ID: "T-" + s.Name, CurrentLocation: models.Coordinate{Lat: 48.5, Lon: 2.1}, DroneType: "UAV"}
+		// Run Hive Env Management
+		for _, h := range server.Hives {
+			ctrl := &hive.Controller{Hive: h}
+			ctrl.ManageEnvironment()
+			server.Hives[h.ID] = ctrl.Hive
+		}
+
+		threat := models.Threat{ID: "T-" + s.Name, CurrentLocation: models.Coordinate{Lat: 48.5, Lon: 2.1}}
 		server.AddThreat(threat)
+
 		_, err := server.Engage(ctx, threat.ID)
 		if err != nil {
-			fmt.Printf("Result: %v\n", err)
+			fmt.Printf("Engagement Result: BLOCKED (%v)\n", err)
 		} else {
-			fmt.Println("Result: Success (Authorized)")
+			fmt.Println("Engagement Result: AUTHORIZED")
 		}
 	}
 
-	// 2. Failure & Auto-Redeployment Test
-	fmt.Println("\n>>> FAILURE TEST: Manual Interceptor/Mission Crash")
-	geo.SetWeather(geo.WeatherCondition{Name: "CLEAR", WindSpeed: 5, Visibility: 10000})
-
-	threatID := "THREAT-CRASH-TEST"
-	server.AddThreat(models.Threat{ID: threatID, CurrentLocation: models.Coordinate{Lat: 48.5, Lon: 2.1}, DroneType: "UAV"})
-
-	missionID, _ := server.Engage(ctx, threatID)
-	fmt.Printf("Initial Mission %s launched.\n", missionID)
-
-	// Simulate mission failure (crash)
-	fmt.Println("CRITICAL: Mission failure detected (interceptor crashed). Triggering HandleMissionFailure...")
-	server.HandleMissionFailure(missionID)
-
-	// Wait for worker to re-engage
-	time.Sleep(500 * time.Millisecond)
-
-	fmt.Println("\n--- SIMULATION SUITE COMPLETE ---")
+	fmt.Println("\n--- EXTREME ENVIRONMENT SIMULATION COMPLETE ---")
 }

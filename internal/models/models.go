@@ -29,6 +29,7 @@ type HiveEnvironment struct {
 	Pressure      float64 `json:"pressure"`
 	SealIntegrity float64 `json:"seal_integrity"`
 	HeaterLoad    float64 `json:"heater_load"`
+	CoolingLoad   float64 `json:"cooling_load"`
 }
 
 type Hive struct {

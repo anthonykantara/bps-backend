@@ -5,19 +5,33 @@ import (
 	"sync"
 )
 
+type WeatherType string
+
+const (
+	WeatherClear     WeatherType = "CLEAR"
+	WeatherFog       WeatherType = "FOG"
+	WeatherSandstorm WeatherType = "SANDSTORM"
+	WeatherSnow      WeatherType = "SNOW"
+	WeatherHurricane WeatherType = "HURRICANE"
+)
+
 type WeatherCondition struct {
-	Name       string
-	WindSpeed  float64
-	Visibility float64
-	IsJamming  bool
+	Type        WeatherType
+	Name        string
+	Temperature float64
+	WindSpeed   float64
+	Visibility  float64
+	IsJamming   bool
 }
 
 var (
 	currentWeather = WeatherCondition{
-		Name:       "CLEAR",
-		WindSpeed:  5.0,
-		Visibility: 10000.0,
-		IsJamming:  false,
+		Type:        WeatherClear,
+		Name:        "DEFAULT CLEAR",
+		Temperature: 20.0,
+		WindSpeed:   5.0,
+		Visibility:  10000.0,
+		IsJamming:   false,
 	}
 	weatherMu sync.RWMutex
 )

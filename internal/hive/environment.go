@@ -16,8 +16,15 @@ func (c *Controller) ManageEnvironment() {
 		}
 	case "ARCTIC":
 		if env.Temperature < -20 {
-			fmt.Printf("Hive %s: Extreme cold detected (%.1f C). Increasing heater load to prevent magazine freeze.\n", c.Hive.ID, env.Temperature)
-			env.HeaterLoad = 0.8
+			fmt.Printf("Hive %s: Extreme cold (%.1f C). Increasing heater load to prevent magazine freeze.\n", c.Hive.ID, env.Temperature)
+			env.HeaterLoad = 1.0
+			env.CoolingLoad = 0.0
+		}
+	case "DESERT":
+		if env.Temperature > 45 {
+			fmt.Printf("Hive %s: Extreme heat (%.1f C). Activating active liquid cooling for magazines.\n", c.Hive.ID, env.Temperature)
+			env.CoolingLoad = 1.0
+			env.HeaterLoad = 0.0
 		}
 	}
 }
