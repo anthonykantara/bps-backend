@@ -14,35 +14,40 @@ func (c *Controller) SetStatus(status models.HiveStatus) {
 	c.Hive.Status = status
 
 	if status == models.HiveStatusStandby {
-		fmt.Println("Powering up generator, charging interceptors, opening launch drawer...")
-		// Simulate interceptor charging
 		for i := range c.Hive.Interceptors {
-			if c.Hive.Interceptors[i].BatteryLevel < 100 {
-				c.Hive.Interceptors[i].Status = models.InterceptorStatusCharging
-				c.Hive.Interceptors[i].BatteryLevel = 100 // Instant charge in standby for demo
-			}
+			c.Hive.Interceptors[i].Status = models.InterceptorStatusCharging
+			c.Hive.Interceptors[i].BatteryLevel = 100
 		}
 	}
 }
 
-func (c *Controller) MonitorBMS() {
-	// Battery Management System: Maintain health
-	for i := range c.Hive.Interceptors {
-		interceptor := &c.Hive.Interceptors[i]
-		if interceptor.BatteryLevel < 20 {
-			fmt.Printf("BMS: Low battery on interceptor %s, initiating trickle charge\n", interceptor.ID)
-			interceptor.BatteryLevel += 1
-		}
+func (c *Controller) Reload() error {
+	if c.Hive.StorageCount <= 0 {
+		return fmt.Errorf("no storage remaining for hive %s", c.Hive.ID)
 	}
+
+	capacity := 160
+	needed := capacity - c.Hive.InterceptorsCount
+	if needed <= 0 {
+		return nil
+	}
+
+	reloadAmount := needed
+	if c.Hive.StorageCount < needed {
+		reloadAmount = c.Hive.StorageCount
+	}
+
+	c.Hive.InterceptorsCount += reloadAmount
+	c.Hive.StorageCount -= reloadAmount
+
+	fmt.Printf("Hive %s: Reloaded %d interceptors from storage.\n", c.Hive.ID, reloadAmount)
+	return nil
 }
 
 func (c *Controller) LaunchInterceptor(id string) (*models.Interceptor, error) {
-	for i := range c.Hive.Interceptors {
-		if c.Hive.Interceptors[i].ID == id {
-			c.Hive.Interceptors[i].Status = models.InterceptorStatusLaunched
-			c.Hive.InterceptorsCount--
-			return &c.Hive.Interceptors[i], nil
-		}
+	if c.Hive.InterceptorsCount <= 0 {
+		return nil, fmt.Errorf("no interceptors loaded")
 	}
-	return nil, fmt.Errorf("interceptor %s not found", id)
+	c.Hive.InterceptorsCount--
+	return &models.Interceptor{Status: models.InterceptorStatusLaunched}, nil
 }

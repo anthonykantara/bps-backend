@@ -25,14 +25,15 @@ const (
 type Hive struct {
 	ID                 string             `json:"id"`
 	Location           Coordinate         `json:"location"`
-	SafeCrashSite      Coordinate         `json:"safe_crash_site"` // Designated by C2
+	SafeCrashSite      Coordinate         `json:"safe_crash_site"`
 	Status             HiveStatus         `json:"status"`
 	EnergyLevel        float64            `json:"energy_level"`
 	EnergyDuration     time.Duration      `json:"energy_duration"`
 	IsPluggedIn        bool               `json:"is_plugged_in"`
 	Connectivity       map[ConnectivitySource]float64 `json:"connectivity"`
 	Temperature        float64            `json:"temperature"`
-	InterceptorsCount  int                `json:"interceptors_count"`
+	InterceptorsCount  int                `json:"interceptors_count"` // Loaded
+	StorageCount       int                `json:"storage_count"`      // On-site storage
 	Interceptors       []Interceptor      `json:"interceptors"`
 	Magazines          []Magazine         `json:"magazines"`
 	Breaches           []string           `json:"breaches"`
@@ -92,14 +93,24 @@ type Threat struct {
 	DetectedBy        string     `json:"detected_by"`
 }
 
+type MissionStatus string
+
+const (
+	MissionPlanned   MissionStatus = "PLANNED"
+	MissionActive    MissionStatus = "ACTIVE"
+	MissionSuccess   MissionStatus = "SUCCESS"
+	MissionFailed    MissionStatus = "FAILED"
+	MissionIntercept MissionStatus = "INTERCEPTED"
+)
+
 type Mission struct {
-	ID                string     `json:"id"`
-	ThreatID          string     `json:"threat_id"`
-	InterceptorIDs    []string   `json:"interceptor_ids"`
-	HiveIDs           []string   `json:"hive_ids"`
-	Status            string     `json:"status"`
-	StartTime         time.Time  `json:"start_time"`
-	InterceptionPt    Coordinate `json:"interception_point"`
-	ProjectedTargetPt Coordinate `json:"projected_target_point"`
-	HiveSafeCrashSite Coordinate `json:"hive_safe_crash_site"`
+	ID                string        `json:"id"`
+	ThreatID          string        `json:"threat_id"`
+	InterceptorIDs    []string      `json:"interceptor_ids"`
+	HiveIDs           []string      `json:"hive_ids"`
+	Status            MissionStatus `json:"status"`
+	StartTime         time.Time     `json:"start_time"`
+	InterceptionPt    Coordinate    `json:"interception_point"`
+	ProjectedTargetPt Coordinate    `json:"projected_target_point"`
+	HiveSafeCrashSite Coordinate    `json:"hive_safe_crash_site"`
 }

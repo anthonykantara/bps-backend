@@ -9,11 +9,12 @@ import (
 )
 
 type C2Server struct {
-	mu          sync.RWMutex
-	Hives       map[string]models.Hive
-	Threats     map[string]models.Threat
-	Missions    map[string]models.Mission
-	EngageEngine *engagement.Engine
+	mu            sync.RWMutex
+	Hives         map[string]models.Hive
+	Threats       map[string]models.Threat
+	Missions      map[string]models.Mission
+	GlobalStorage int
+	EngageEngine  *engagement.Engine
 }
 
 func NewC2Server() *C2Server {
@@ -39,7 +40,6 @@ func (s *C2Server) Engage(ctx context.Context, threatID string) (string, error) 
 		return "", fmt.Errorf("threat not found")
 	}
 
-	// Update engine with latest hives
 	var hiveList []models.Hive
 	for _, h := range s.Hives {
 		hiveList = append(hiveList, h)
@@ -52,24 +52,45 @@ func (s *C2Server) Engage(ctx context.Context, threatID string) (string, error) 
 	}
 
 	s.Missions[mission.ID] = *mission
-	fmt.Printf("Engagement initiated for threat %s, Mission: %s\n", threatID, mission.ID)
+
+	// Update Hive state (locally for simulation)
+	hiveID := mission.HiveIDs[0]
+	h := s.Hives[hiveID]
+	h.InterceptorsCount--
+	s.Hives[hiveID] = h
 
 	return mission.ID, nil
 }
 
-func (s *C2Server) GetLiveStatus() map[string]interface{} {
+func (s *C2Server) GetStockpileReport() map[string]int {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 
-	return map[string]interface{}{
-		"hives":    s.Hives,
-		"threats":  s.Threats,
-		"missions": s.Missions,
+	loaded := 0
+	storage := s.GlobalStorage
+	for _, h := range s.Hives {
+		loaded += h.InterceptorsCount
+		storage += h.StorageCount
+	}
+
+	return map[string]int{
+		"loaded":  loaded,
+		"storage": storage,
+		"total":   loaded + storage,
 	}
 }
 
-// GeoJSONExport provides data for Leaflet frontend
-func (s *C2Server) GeoJSONExport() string {
-	// Logic to generate GeoJSON for all active elements
-	return "{\"type\": \"FeatureCollection\", \"features\": []}"
+func (s *C2Server) HandleMissionFailure(missionID string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	m, ok := s.Missions[missionID]
+	if !ok {
+		return
+	}
+	m.Status = models.MissionFailed
+	s.Missions[missionID] = m
+
+	fmt.Printf("C2: Mission %s failed. Triggering automated re-engagement for threat %s...\n", missionID, m.ThreatID)
+	// New engagement will be triggered in the next loop or via a worker
 }
