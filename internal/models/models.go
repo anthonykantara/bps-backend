@@ -23,6 +23,14 @@ const (
 	ConnEthernet ConnectivitySource = "ETHERNET"
 )
 
+type HiveEnvironment struct {
+	Type          string  `json:"type"` // ARCTIC, DESERT, AMPHIBIOUS, STANDARD
+	Temperature   float64 `json:"temperature"`
+	Pressure      float64 `json:"pressure"`
+	SealIntegrity float64 `json:"seal_integrity"`
+	HeaterLoad    float64 `json:"heater_load"`
+}
+
 type Hive struct {
 	ID                 string             `json:"id"`
 	Location           Coordinate         `json:"location"`
@@ -32,7 +40,7 @@ type Hive struct {
 	EnergyDuration     time.Duration      `json:"energy_duration"`
 	IsPluggedIn        bool               `json:"is_plugged_in"`
 	Connectivity       map[ConnectivitySource]float64 `json:"connectivity"`
-	Temperature        float64            `json:"temperature"`
+	Environment        HiveEnvironment    `json:"environment"`
 	InterceptorsCount  int                `json:"interceptors_count"`
 	StorageCount       int                `json:"storage_count"`
 	Interceptors       []Interceptor      `json:"interceptors"`
@@ -45,7 +53,7 @@ type Hive struct {
 
 type Magazine struct {
 	ID                string `json:"id"`
-	InterceptorsCount int    `json:"interceptors_count"` // Max 40
+	InterceptorsCount int    `json:"interceptors_count"`
 }
 
 type InterceptorStatus string
@@ -78,8 +86,10 @@ type Coordinate struct {
 type ThreatType string
 
 const (
-	ThreatSingle ThreatType = "SINGLE"
-	ThreatSwarm  ThreatType = "SWARM"
+	ThreatSingle   ThreatType = "SINGLE"
+	ThreatSwarm    ThreatType = "SWARM"
+	ThreatFriendly ThreatType = "FRIENDLY"
+	ThreatCivilian ThreatType = "CIVILIAN"
 )
 
 type Threat struct {
@@ -93,6 +103,20 @@ type Threat struct {
 	Altitude          float64    `json:"altitude"`
 	LastUpdated       time.Time  `json:"last_updated"`
 	DetectedBy        string     `json:"detected_by"`
+	TransponderCode   string     `json:"transponder_code,omitempty"`
+}
+
+type UserRole string
+
+const (
+	RoleOperator  UserRole = "OPERATOR"
+	RoleCommander UserRole = "COMMANDER"
+	RoleAdmin     UserRole = "ADMIN"
+)
+
+type User struct {
+	ID   string   `json:"id"`
+	Role UserRole `json:"role"`
 }
 
 type MissionStatus string
@@ -115,4 +139,5 @@ type Mission struct {
 	InterceptionPt    Coordinate    `json:"interception_point"`
 	ProjectedTargetPt Coordinate    `json:"projected_target_point"`
 	HiveSafeCrashSite Coordinate    `json:"hive_safe_crash_site"`
+	AuthorizedBy      string        `json:"authorized_by"`
 }
