@@ -25,11 +25,12 @@ const (
 type Hive struct {
 	ID                 string             `json:"id"`
 	Location           Coordinate         `json:"location"`
+	SafeCrashSite      Coordinate         `json:"safe_crash_site"` // Designated by C2
 	Status             HiveStatus         `json:"status"`
-	EnergyLevel        float64            `json:"energy_level"` // Fuel %
+	EnergyLevel        float64            `json:"energy_level"`
 	EnergyDuration     time.Duration      `json:"energy_duration"`
 	IsPluggedIn        bool               `json:"is_plugged_in"`
-	Connectivity       map[ConnectivitySource]float64 `json:"connectivity"` // Source to signal strength
+	Connectivity       map[ConnectivitySource]float64 `json:"connectivity"`
 	Temperature        float64            `json:"temperature"`
 	InterceptorsCount  int                `json:"interceptors_count"`
 	Interceptors       []Interceptor      `json:"interceptors"`
@@ -88,15 +89,17 @@ type Threat struct {
 	Speed             float64    `json:"speed"`
 	Altitude          float64    `json:"altitude"`
 	LastUpdated       time.Time  `json:"last_updated"`
-	DetectedBy        string     `json:"detected_by"` // Radar ID
+	DetectedBy        string     `json:"detected_by"`
 }
 
 type Mission struct {
-	ID             string     `json:"id"`
-	ThreatID       string     `json:"threat_id"`
-	InterceptorIDs []string   `json:"interceptor_ids"`
-	HiveIDs        []string   `json:"hive_ids"`
-	Status         string     `json:"status"`
-	StartTime      time.Time  `json:"start_time"`
-	InterceptionPt Coordinate `json:"interception_point"`
+	ID                string     `json:"id"`
+	ThreatID          string     `json:"threat_id"`
+	InterceptorIDs    []string   `json:"interceptor_ids"`
+	HiveIDs           []string   `json:"hive_ids"`
+	Status            string     `json:"status"`
+	StartTime         time.Time  `json:"start_time"`
+	InterceptionPt    Coordinate `json:"interception_point"`
+	ProjectedTargetPt Coordinate `json:"projected_target_point"`
+	HiveSafeCrashSite Coordinate `json:"hive_safe_crash_site"`
 }

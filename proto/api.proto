@@ -7,9 +7,17 @@ option go_package = "ghost-hive/api";
 import "google/protobuf/timestamp.proto";
 
 service C2Service {
+  // Global View
   rpc GetHives(GetHivesRequest) returns (GetHivesResponse);
   rpc GetThreats(GetThreatsRequest) returns (GetThreatsResponse);
+
+  // Commands
   rpc EngageThreat(EngageThreatRequest) returns (EngageThreatResponse);
+
+  // Telemetry & Coordination (Bi-directional)
+  rpc StreamTelemetry(stream TelemetryUpdate) returns (stream CommandControl);
+
+  // Mission Monitoring
   rpc GetMissionStream(GetMissionStreamRequest) returns (stream MissionUpdate);
 }
 
@@ -26,14 +34,22 @@ message Hive {
   double energy_level = 4;
   map<string, double> connectivity = 5;
   int32 interceptors_count = 6;
+  repeated Magazine magazines = 7;
+}
+
+message Magazine {
+  string id = 1;
+  int32 count = 2;
 }
 
 message Threat {
   string id = 1;
   string drone_type = 2;
   Coordinate location = 3;
-  double speed = 4;
-  double altitude = 5;
+  Coordinate projected_target = 4;
+  double speed = 5;
+  double altitude = 6;
+  string threat_type = 7; // SINGLE, SWARM
 }
 
 message GetHivesRequest {}
@@ -56,9 +72,31 @@ message EngageThreatResponse {
   bool success = 2;
 }
 
+message TelemetryUpdate {
+  string source_id = 1; // Hive or Interceptor ID
+  Coordinate location = 2;
+  double battery_level = 3;
+  double speed = 4;
+  double heading = 5;
+  string status = 6;
+  google.protobuf.Timestamp timestamp = 7;
+}
+
+message CommandControl {
+  string target_id = 1;
+  string command = 2; // LAUNCH, ABORT, RE-ROUTE, DESTROY
+  Coordinate new_route_point = 3;
+  string assigned_threat_id = 4;
+}
+
+message GetMissionStreamRequest {
+  string mission_id = 1;
+}
+
 message MissionUpdate {
   string mission_id = 1;
   string status = 2;
   Coordinate interceptor_location = 3;
   Coordinate threat_location = 4;
+  string event_log = 5;
 }

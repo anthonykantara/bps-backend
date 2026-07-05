@@ -1,0 +1,22 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ghost-hive
+spec:
+  replicas: 10
+  selector:
+    matchLabels:
+      app: ghost-hive
+  template:
+    metadata:
+      labels:
+        app: ghost-hive
+    spec:
+      containers:
+      - name: hive-service
+        image: ghost-hive-backend:latest
+        env:
+        - name: DATABASE_URL
+          value: "postgres://user:pass@postgres:5432/ghosthive"
+        ports:
+        - containerPort: 50051
