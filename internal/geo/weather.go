@@ -1,18 +1,35 @@
 package geo
 
-import "ghost-hive/internal/models"
+import (
+	"ghost-hive/internal/models"
+	"sync"
+)
 
 type WeatherCondition struct {
-	WindSpeed float64
+	Name       string
+	WindSpeed  float64
 	Visibility float64
-	IsJamming bool
+	IsJamming  bool
+}
+
+var (
+	currentWeather = WeatherCondition{
+		Name:       "CLEAR",
+		WindSpeed:  5.0,
+		Visibility: 10000.0,
+		IsJamming:  false,
+	}
+	weatherMu sync.RWMutex
+)
+
+func SetWeather(w WeatherCondition) {
+	weatherMu.Lock()
+	defer weatherMu.Unlock()
+	currentWeather = w
 }
 
 func GetCurrentWeather(loc models.Coordinate) WeatherCondition {
-	// Placeholder for real-time weather API integration
-	return WeatherCondition{
-		WindSpeed: 5.0,
-		Visibility: 10000.0,
-		IsJamming: false,
-	}
+	weatherMu.RLock()
+	defer weatherMu.RUnlock()
+	return currentWeather
 }

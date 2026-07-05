@@ -5,61 +5,67 @@ import (
 	"fmt"
 	"ghost-hive/internal/c2"
 	"ghost-hive/internal/models"
-	"ghost-hive/internal/hive"
+	"ghost-hive/internal/geo"
+	"time"
 )
 
 func main() {
-	fmt.Println("--- GHOST HIVE: THE FINAL COMPLETE VERIFICATION ---")
+	fmt.Println("--- GHOST HIVE MULTI-VARIABLE SIMULATION SUITE ---")
 
 	server := c2.NewC2Server()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	// 1. Setup Amphibious Arctic Hive
-	h := models.Hive{
-		ID: "HIVE-ULTIMATE",
-		Status: models.HiveStatusActive,
-		InterceptorsCount: 160,
-		Environment: models.HiveEnvironment{
-			Type: "AMPHIBIOUS",
-			Pressure: 2.0, // High depth
-			Temperature: -25.0, // Extreme cold
-		},
-	}
-	server.Hives[h.ID] = h
+	// Start the auto-redeployment worker
+	server.StartAutoRedeploymentWorker(ctx)
 
-	ctrl := &hive.Controller{Hive: server.Hives[h.ID]}
-	ctrl.ManageEnvironment()
-	fmt.Printf("Hive Env Telemetry: Seal Integrity=%.2f, Heater Load=%.2f\n", ctrl.Hive.Environment.SealIntegrity, ctrl.Hive.Environment.HeaterLoad)
-
-	// 2. IFF Filtering Demo
-	fmt.Println("\nIFF Test: Detecting Friendly Aircraft...")
-	friendly := models.Threat{
-		ID: "AIR-NATO-01",
-		TransponderCode: "NATO-X-RAY",
-	}
-	server.AddThreat(friendly)
-	_, err := server.Engage(context.Background(), friendly.ID)
-	if err != nil {
-		fmt.Printf("Engagement Result: %v\n", err)
+	// Setup baseline hives
+	for i := 0; i < 5; i++ {
+		server.Hives[fmt.Sprintf("H-%d", i)] = models.Hive{
+			ID: fmt.Sprintf("H-%d", i),
+			Status: models.HiveStatusActive,
+			InterceptorsCount: 160,
+			Location: models.Coordinate{Lat: 48, Lon: 2},
+		}
 	}
 
-	// 3. RBAC Demo
-	fmt.Println("\nRBAC Test: Unauthorized Mass Scramble by Operator...")
-	server.RBAC.ActiveUser = models.User{ID: "OP-42", Role: models.RoleOperator}
-	_, err = server.RBAC.CanEngage("MASS_SCRAMBLE")
-	if err != nil {
-		fmt.Printf("RBAC Result: %v\n", err)
+	// 1. Weather Scenarios
+	weatherScenarios := []geo.WeatherCondition{
+		{Name: "CLEAR SKIES", WindSpeed: 5, Visibility: 10000, IsJamming: false},
+		{Name: "HIGH WIND (GALE)", WindSpeed: 45, Visibility: 5000, IsJamming: false},
+		{Name: "HURRICANE", WindSpeed: 120, Visibility: 50, IsJamming: false},
 	}
 
-	// 4. Successful Engagement
-	fmt.Println("\nFinal Engagement: Hostile Threat Detected...")
-	hostile := models.Threat{
-		ID: "THREAT-DELTA",
-		DroneType: "LOITERING-MUNITION",
-	}
-	server.AddThreat(hostile)
-	server.RBAC.ActiveUser = models.User{ID: "CMD-01", Role: models.RoleCommander}
-	missionID, _ := server.Engage(context.Background(), hostile.ID)
-	fmt.Printf("C2: Authorized mission %s launched by %s\n", missionID, server.RBAC.ActiveUser.ID)
+	for _, s := range weatherScenarios {
+		fmt.Printf("\n>>> WEATHER TEST: %s\n", s.Name)
+		geo.SetWeather(s)
 
-	fmt.Println("\n--- GHOST HIVE SYSTEM: MISSION COMPLETE. 100% OPERATIONAL. ---")
+		threat := models.Threat{ID: "T-" + s.Name, CurrentLocation: models.Coordinate{Lat: 48.5, Lon: 2.1}, DroneType: "UAV"}
+		server.AddThreat(threat)
+		_, err := server.Engage(ctx, threat.ID)
+		if err != nil {
+			fmt.Printf("Result: %v\n", err)
+		} else {
+			fmt.Println("Result: Success (Authorized)")
+		}
+	}
+
+	// 2. Failure & Auto-Redeployment Test
+	fmt.Println("\n>>> FAILURE TEST: Manual Interceptor/Mission Crash")
+	geo.SetWeather(geo.WeatherCondition{Name: "CLEAR", WindSpeed: 5, Visibility: 10000})
+
+	threatID := "THREAT-CRASH-TEST"
+	server.AddThreat(models.Threat{ID: threatID, CurrentLocation: models.Coordinate{Lat: 48.5, Lon: 2.1}, DroneType: "UAV"})
+
+	missionID, _ := server.Engage(ctx, threatID)
+	fmt.Printf("Initial Mission %s launched.\n", missionID)
+
+	// Simulate mission failure (crash)
+	fmt.Println("CRITICAL: Mission failure detected (interceptor crashed). Triggering HandleMissionFailure...")
+	server.HandleMissionFailure(missionID)
+
+	// Wait for worker to re-engage
+	time.Sleep(500 * time.Millisecond)
+
+	fmt.Println("\n--- SIMULATION SUITE COMPLETE ---")
 }
