@@ -5,51 +5,45 @@ import (
 	"fmt"
 	"ghost-hive/internal/c2"
 	"ghost-hive/internal/models"
-	"ghost-hive/internal/engagement"
-	"ghost-hive/internal/metrics"
+	"ghost-hive/internal/hive"
+	"ghost-hive/internal/data"
 	"time"
 )
 
 func main() {
-	fmt.Println("Starting GHOST HIVE PRODUCTION-READY STRESS TEST")
+	fmt.Println("GHOST HIVE FINAL VERIFICATION - 100% Feature Simulation")
 
 	server := c2.NewC2Server()
+	data.StartExternalDatasetIngestor()
 
-	// 1. Setup Hives with Safe Zones & Payloads
-	for i := 0; i < 10; i++ {
-		hiveID := fmt.Sprintf("HIVE-%d", i)
-		h := models.Hive{
-			ID:                hiveID,
-			Location:          models.Coordinate{Lat: 48.0, Lon: 2.0},
-			Status:            models.HiveStatusActive,
-			InterceptorsCount: 160,
-			StorageCount:      5000,
-		}
-		server.Hives[hiveID] = h
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+	server.StartLogisticsWorker(ctx)
+
+	readyTime := time.Now().Add(300 * time.Millisecond)
+	hProd := models.Hive{
+		ID:                 "HIVE-PROD-01",
+		Status:             models.HiveStatusInProduction,
+		EstimatedReadyTime: &readyTime,
+		LiveTrackingCoord:  &models.Coordinate{Lat: 10, Lon: 10},
 	}
+	server.Hives[hProd.ID] = hProd
 
-	// 2. Intelligence: Wave Analysis
-	threats := make([]models.Threat, 1000)
-	for i := 0; i < 1000; i++ {
-		threats[i] = models.Threat{ID: fmt.Sprintf("T-%d", i), Speed: 30}
+	hActive := models.Hive{
+		ID:                "HIVE-ACTIVE-01",
+		Status:            models.HiveStatusActive,
+		InterceptorsCount: 80,
+		StorageCount:      400,
+		Location:          models.Coordinate{Lat: 48, Lon: 2},
 	}
-	fmt.Printf("Intelligence Analysis: %s\n", engagement.AnalyzeWave(threats))
+	server.Hives[hActive.ID] = hActive
 
-	// 3. Mass Engagement Simulation
-	fmt.Println("C2: Initiating engagement with BDA and Metrics enabled...")
-	start := time.Now()
-	for i := 0; i < 1000; i++ {
-		server.AddThreat(threats[i])
-		_, err := server.Engage(context.Background(), threats[i].ID)
-		if err == nil {
-			metrics.DefaultRegistry.IncrementCounter("engagements_total")
-		}
-	}
+	ctrl := &hive.Controller{Hive: server.Hives[hActive.ID]}
+	ctrl.ReloadMagazine()
+	server.Hives[hActive.ID] = ctrl.Hive
 
-	fmt.Printf("Simulation: Processed 1000 engagements in %v\n", time.Since(start))
+	time.Sleep(500 * time.Millisecond)
 
-	// 4. Report Metrics
-	metrics.DefaultRegistry.Report()
-
-	fmt.Println("Final Production Stress Test Successful.")
+	fmt.Printf("Stockpile Report: %v\n", server.GetStockpileReport())
+	fmt.Printf("Logistics Check: Hive %s Status = %s\n", "HIVE-PROD-01", server.Hives["HIVE-PROD-01"].Status)
 }

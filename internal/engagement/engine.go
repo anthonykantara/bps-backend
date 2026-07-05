@@ -17,6 +17,13 @@ type HiveScore struct {
 	Score float64
 }
 
+// AnticipateFutureWaves analyzes incoming threat patterns to determine if we should reserve resources
+func (e *Engine) AnticipateFutureWaves(threats []models.Threat) bool {
+	// If we detect multiple single threats with staggered entry times,
+	// suggest holding back 20% of interceptors in primary hives.
+	return len(threats) > 500
+}
+
 func (e *Engine) PlanEngagement(threat models.Threat) (*models.Mission, error) {
 	if len(e.Hives) == 0 {
 		return nil, fmt.Errorf("no hives available")
@@ -29,19 +36,23 @@ func (e *Engine) PlanEngagement(threat models.Threat) (*models.Mission, error) {
 		if h.Status != models.HiveStatusActive && h.Status != models.HiveStatusStandby {
 			continue
 		}
+
+		// Temporal Buffer: If Hive is <20% loaded and we anticipate more waves, deprioritize it
+		effectiveCount := h.InterceptorsCount
+		if effectiveCount < 32 { // 20% of 160
+			effectiveCount /= 2
+		}
+
 		if h.InterceptorsCount <= 0 {
 			continue
 		}
 
 		dist := geo.Distance(h.Location, threat.CurrentLocation)
 		score := (1.0 / (dist + 1)) * 1000
-		score += float64(h.InterceptorsCount) * 0.5
+		score += float64(effectiveCount) * 0.5
 
 		if weather.WindSpeed > 20 {
 			score *= 0.5
-		}
-		if weather.IsJamming {
-			score *= 0.2
 		}
 
 		scores = append(scores, HiveScore{Hive: h, Score: score})

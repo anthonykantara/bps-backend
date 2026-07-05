@@ -21,26 +21,26 @@ func (c *Controller) SetStatus(status models.HiveStatus) {
 	}
 }
 
-func (c *Controller) Reload() error {
-	if c.Hive.StorageCount <= 0 {
-		return fmt.Errorf("no storage remaining for hive %s", c.Hive.ID)
+func (c *Controller) ReloadMagazine() error {
+	const magazineSize = 40
+	if c.Hive.StorageCount < magazineSize {
+		return fmt.Errorf("insufficient storage for full magazine reload in hive %s", c.Hive.ID)
 	}
 
-	capacity := 160
-	needed := capacity - c.Hive.InterceptorsCount
-	if needed <= 0 {
-		return nil
+	if c.Hive.InterceptorsCount + magazineSize > 160 {
+		return fmt.Errorf("hive %s exceeds interceptor capacity (160 max)", c.Hive.ID)
 	}
 
-	reloadAmount := needed
-	if c.Hive.StorageCount < needed {
-		reloadAmount = c.Hive.StorageCount
+	c.Hive.InterceptorsCount += magazineSize
+	c.Hive.StorageCount -= magazineSize
+
+	mag := models.Magazine{
+		ID: fmt.Sprintf("MAG-%s-%d", c.Hive.ID, len(c.Hive.Magazines)),
+		InterceptorsCount: magazineSize,
 	}
+	c.Hive.Magazines = append(c.Hive.Magazines, mag)
 
-	c.Hive.InterceptorsCount += reloadAmount
-	c.Hive.StorageCount -= reloadAmount
-
-	fmt.Printf("Hive %s: Reloaded %d interceptors from storage.\n", c.Hive.ID, reloadAmount)
+	fmt.Printf("Hive %s: Magazine-based reload complete (40 units). Total Loaded: %d\n", c.Hive.ID, c.Hive.InterceptorsCount)
 	return nil
 }
 
@@ -49,5 +49,15 @@ func (c *Controller) LaunchInterceptor(id string) (*models.Interceptor, error) {
 		return nil, fmt.Errorf("no interceptors loaded")
 	}
 	c.Hive.InterceptorsCount--
+
+	// Deplete current magazine
+	if len(c.Hive.Magazines) > 0 {
+		idx := len(c.Hive.Magazines)-1
+		c.Hive.Magazines[idx].InterceptorsCount--
+		if c.Hive.Magazines[idx].InterceptorsCount == 0 {
+			c.Hive.Magazines = c.Hive.Magazines[:idx] // Eject empty magazine
+		}
+	}
+
 	return &models.Interceptor{Status: models.InterceptorStatusLaunched}, nil
 }

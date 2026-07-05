@@ -7,11 +7,12 @@ import (
 type HiveStatus string
 
 const (
-	HiveStatusIdle      HiveStatus = "IDLE"
-	HiveStatusStandby   HiveStatus = "STANDBY"
-	HiveStatusActive    HiveStatus = "ACTIVE"
-	HiveStatusTransport HiveStatus = "TRANSPORT"
-	HiveStatusMaintenance HiveStatus = "MAINTENANCE"
+	HiveStatusIdle        HiveStatus = "IDLE"
+	HiveStatusStandby     HiveStatus = "STANDBY"
+	HiveStatusActive      HiveStatus = "ACTIVE"
+	HiveStatusInProduction HiveStatus = "IN_PRODUCTION"
+	HiveStatusInTransport  HiveStatus = "IN_TRANSPORT"
+	HiveStatusMaintenance  HiveStatus = "MAINTENANCE"
 )
 
 type ConnectivitySource string
@@ -32,18 +33,19 @@ type Hive struct {
 	IsPluggedIn        bool               `json:"is_plugged_in"`
 	Connectivity       map[ConnectivitySource]float64 `json:"connectivity"`
 	Temperature        float64            `json:"temperature"`
-	InterceptorsCount  int                `json:"interceptors_count"` // Loaded
-	StorageCount       int                `json:"storage_count"`      // On-site storage
+	InterceptorsCount  int                `json:"interceptors_count"`
+	StorageCount       int                `json:"storage_count"`
 	Interceptors       []Interceptor      `json:"interceptors"`
 	Magazines          []Magazine         `json:"magazines"`
 	Breaches           []string           `json:"breaches"`
 	Malfunctions       []string           `json:"malfunctions"`
 	EstimatedReadyTime *time.Time         `json:"estimated_ready_time,omitempty"`
+	LiveTrackingCoord  *Coordinate        `json:"live_tracking_coord,omitempty"`
 }
 
 type Magazine struct {
 	ID                string `json:"id"`
-	InterceptorsCount int    `json:"interceptors_count"`
+	InterceptorsCount int    `json:"interceptors_count"` // Max 40
 }
 
 type InterceptorStatus string
